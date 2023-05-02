@@ -1,5 +1,7 @@
 # Reproducible Research, Week2 Course Project
 - Data Science Specialization, Modul 5, Johns Hopkins
+Students: [ZHU Quanming](zhuquanming@gmail.com) 
+Date: 2023-05-02 14:15 
 
 ## Introduction
 
