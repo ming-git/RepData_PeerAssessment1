@@ -326,5 +326,16 @@ as52g
 ```
 
 ## Submitting the Assignment
+### githuburl
+* **ssh: **git@github.com:ming-git/RepData_PeerAssessment1.git
+* **https: **https://github.com/ming-git/RepData_PeerAssessment1.git
+
+### SHA-1
+The first commit on [Comparing changes] (https://github.com/rdpeng/RepData_PeerAssessment1/compare/master...ming-git:RepData_PeerAssessment1:master)
+
+* **first commit: **711bc1a99fb81300ec24be9bbcd18f1d1de008a9
+
+
+
 
 
