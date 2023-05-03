@@ -9,26 +9,6 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Introduction
-
-It is now possible to collect a large amount of data about personal
-movement using activity monitoring devices such as a
-[Fitbit](http://www.fitbit.com), [Nike
-Fuelband](http://www.nike.com/us/en_us/c/nikeplus-fuelband), or
-[Jawbone Up](https://jawbone.com/up). These type of devices are part of
-the "quantified self" movement -- a group of enthusiasts who take
-measurements about themselves regularly to improve their health, to
-find patterns in their behavior, or because they are tech geeks. But
-these data remain under-utilized both because the raw data are hard to
-obtain and there is a lack of statistical methods and software for
-processing and interpreting the data.
-
-This assignment makes use of data from a personal activity monitoring
-device. This device collects data at 5 minute intervals through out the
-day. The data consists of two months of data from an anonymous
-individual collected during the months of October and November, 2012
-and include the number of steps taken in 5 minute intervals each day.
-
 ## Data
 
 The data for this assignment can be downloaded from the course web
@@ -54,71 +34,297 @@ dataset.
 
 ## Assignment
 
-### 1.Loading and preprocessing the data
-
-Show any code that is needed to
-
-1. Load the data (i.e. `read.csv()`)
-
-2. Process/transform the data (if necessary) into a format suitable for your analysis
-```{r assigment1}
-
+```{r config,results='hide',message=FALSE}
+# config the library
+library("dplyr")
+library("lubridate")
+library("ggplot2")
 ```
 
+### 1. Loading and preprocessing the data
+1. Load the data (i.e. `read.csv()`)
+```{r assigment1-1}
+datafile <- "activity.csv"
+df <- read.csv(datafile)
+```
+
+```{r datainfo}
+# basic information check
+# Dimension info
+dim(df)
+
+# First 10 line
+head(df)
+
+# field info
+str(df)
+
+# sumary of data frame
+summary(df)
+```
+2. Process/transform the data (if necessary) into a format suitable for your analysis
+```{r assigment1-2}
+df <- df %>%
+    mutate(date = as.Date(date))# convert chr date to Date format
+    # mutate(weekday = wday(date,week_start = getOption("lubridate.week.start", 1)))
+```
 
 ### 2. What is mean total number of steps taken per day?
+For this part of the assignment, you can ignore the missing values in the dataset.
 
-```{r assigment2}
-
+1. Calculate the total number of steps taken per day
+```{r assigment2-1c}
+as21 <- df %>%
+    group_by(date) %>%
+    summarise(steps.total.daily=sum(steps,na.rm=TRUE))
+    # ungroup() %>%
+    # filter(daily.steps>0)
 ```
-For this part of the assignment, you can ignore the missing values in
-the dataset.
 
-1. Make a histogram of the total number of steps taken each day
+2. If you do not understand the difference between a histogram and a barplot, research the difference between them. Make a histogram of the total number of steps taken each day
+```{r assigment2-2g,fig.align='center'}
+as22g <- ggplot(as21,aes(x=steps.total.daily))+
+    geom_histogram()
 
-2. Calculate and report the **mean** and **median** total number of steps taken per day
+print(as22g)
+```
 
+3. Calculate and report the mean and median of the total number of steps taken per day
+```{r assigment2-2c}
+# data cleaning prep
+as23d <- df %>%
+    group_by(date) %>%
+    summarise(steps.total.daily=sum(steps,na.rm=TRUE))
+```
+
+```{r assigment2-3g, fig.align='center'}
+# Show mean with blue dash line and median with black solide line in box
+as23g <- 
+    ggplot(as23d,aes(x="",y=steps.total.daily)) +
+    geom_boxplot() +
+    geom_hline(yintercept=mean(as23d$steps.total.daily),
+               color="blue",
+               linetype="dashed",
+               linewidth=.5,
+               alpha=0.618,
+               ) +
+    theme_classic()
+
+print(as23g)
+```
 
 ### 3.What is the average daily activity pattern?
-```{r assigment3}
-
-```
 
 1. Make a time series plot (i.e. `type = "l"`) of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all days (y-axis)
 
-2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+```{r assigment3-1d}
+# data cleaning prep
+# average steps per days
 
-
-### 4.Imputing missing values
-```{r assigment4}
-
+as31d <- df %>%
+    filter(!is.na(steps)) %>%
+    filter(steps>0) %>%
+    group_by(interval) %>%
+    summarise(mean.step.interval=mean(steps)) %>%
+    ungroup()
 ```
 
+```{r assigment3-1g, fig.align='center'}
+# plot
+as31p <- 
+    ggplot(as31d,aes(x=interval,y=mean.step.interval)) + 
+    geom_line() +
+   
+    labs(
+        y="mean step per interval"
+    ) +
+    theme_minimal()
+
+print(as31p)
+```
+
+2. Which 5-minute interval, on average across all the days in the dataset, contains the maximum number of steps?
+
+```{r assigment3-2di}
+# data cleaning prep
+# average steps per days
+as32d <- 
+    df %>%
+    filter(!is.na(steps)) %>%
+    filter(steps>0) %>%
+    group_by(interval) %>%
+    summarise(avg.interval=mean(steps)) %>%
+    ungroup() %>%
+    filter(avg.interval==max(avg.interval))
+```
+
+
+```{r assigment3-2g, fig.align='center'}
+# plot
+as32p <- 
+    ggplot(as32d,aes(x=as.character(interval),y=avg.interval)) + 
+    geom_point() +
+    labs(
+        x="interval"
+    )+
+    theme_minimal()
+
+print(as32p)
+```
+
+### 4.Imputing missing values
 Note that there are a number of days/intervals where there are missing
 values (coded as `NA`). The presence of missing days may introduce
 bias into some calculations or summaries of the data.
 
 1. Calculate and report the total number of missing values in the dataset (i.e. the total number of rows with `NA`s)
 
+```{r assigment4-1d }
+as41d <- 
+    df %>%
+    # filter_if(is.numeric,anyNA) %>%
+    # filter(is.na(steps)) %>% # 2304
+    # filter(is.na(steps)|is.na(interval)) %>% # 2304
+    filter(is.na(steps)|is.na(interval)|is.na(date)) %>% #2304
+    nrow()
+
+print(paste("The total number of missing values in the dataset is ",as41d))
+```
+
 2. Devise a strategy for filling in all of the missing values in the dataset. The strategy does not need to be sophisticated. For example, you could use the mean/median for that day, or the mean for that 5-minute interval, etc.
+
+```{r assigment4-2d1 }
+# Calculate the median steps for that day
+medianDay <- df %>%
+    filter(!is.na(steps)) %>%
+    filter(steps>0) %>%
+    group_by(date) %>%
+    summarise(step.median.day=median(steps)) %>%
+    ungroup()
+```
+
+
+```{r assigment4-2d2 }
+# Calculate the mean steps for that 5-minute interval
+meanInterval <- df %>%
+    filter(!is.na(steps)) %>%
+    filter(steps>0) %>%
+    group_by(interval) %>%
+    summarise(step.mean.interval=mean(steps)) %>%
+    ungroup()
+```
 
 3. Create a new dataset that is equal to the original dataset but with the missing data filled in.
 
+```{r assigment4-3d }
+# new dataset with 3 fill strategy.
+
+as43d <- df %>%
+    # Firstly, the missing data filled with step.median.day firstly, 
+    left_join(medianDay,by="date") %>%
+    mutate(steps=if_else(is.na(steps),step.median.day,steps)) %>%
+    select(date,interval,steps) %>%
+    
+    # Secondly, the missing data filled with step.median.interval secondly
+    left_join(meanInterval,by="interval") %>%
+    mutate(steps=if_else(is.na(steps),step.mean.interval,steps)) %>%
+    select(date,interval,steps) %>%
+    
+    # Finally, the missing data filled with 0 finally
+    mutate(steps=if_else(is.na(steps),0,steps))
+```
+
 4. Make a histogram of the total number of steps taken each day and Calculate and report the **mean** and **median** total number of steps taken per day. Do these values differ from the estimates from the first part of the assignment? What is the impact of imputing missing data on the estimates of the total daily number of steps?
 
+```{r assigment4-4d }
 
-### 5.Are there differences in activity patterns between weekdays and weekends?
-```{r assigment5}
+as44d <- as43d %>%
+    group_by(date) %>%
+    summarise(steps.total.day=sum(steps))
+```
+
+```{r assigment4-4g1,fig.align='center'}
+as44g1 <- ggplot(as44d,aes(x=steps.total.day))+
+    geom_histogram()
+
+print(as44g1)
+```
+
+```{r assigment4-4g2, fig.align='center'}
+# Show mean with blue dash line and median with black solide line in box
+as44g2 <- 
+    ggplot(as44d,aes(x="",y=steps.total.day)) +
+    geom_boxplot() +
+    geom_hline(yintercept=mean(as44d$steps.total.day),
+               color="blue",
+               linetype="dashed",
+               linewidth=.5,
+               alpha=0.618,
+               ) +
+    theme_classic()
+
+print(as44g2)
+```
+
+```{r assigement4-3-compare1,message=FALSE,warning=FALSE,fig.align='center'}
+# Do these values differ from the estimates from the first part of the assignment? 
+library(patchwork)
+as22g + 
+    scale_x_continuous(limits = c(-1000, 30000)) +
+    scale_y_continuous(limits = c(0, 10)) +
+    labs(title = "Orginal Data") +
+    theme_bw() |
+as44g1 + 
+    scale_x_continuous(limits = c(-1000, 30000)) +
+    scale_y_continuous(limits = c(0, 10)) + 
+    labs(title = "Filled Data") +
+    theme_bw()
 
 ```
+
+```{r assigement4-3-compare2,fig.align='center' }
+# What is the impact of imputing missing data on the estimates of the total daily number of steps?
+
+library(patchwork)
+as23g + 
+    scale_y_continuous(limits = c(0, 30000)) +
+    labs(title = "Orginal Data") +
+    theme_bw() |
+as44g2 + 
+    scale_y_continuous(limits = c(0, 30000)) +
+    labs(title = "Filled Data") +
+    theme_bw()
+```
+
+### 5.Are there differences in activity patterns between weekdays and weekends?
 For this part the `weekdays()` function may be of some help here. Use
 the dataset with the filled-in missing values for this part.
 
 1. Create a new factor variable in the dataset with two levels -- "weekday" and "weekend" indicating whether a given date is a weekday or weekend day.
+```{r assigment5-1}
+as51d <- df %>%
+    mutate(weekday = wday(date,week_start = getOption("lubridate.week.start", 1))) %>%
+    mutate(daytype = factor(if_else(weekday %in% c(6,7),"weekend","weekday"))) %>%
+    select(daytype,date,interval,steps)
+```
 
-1. Make a panel plot containing a time series plot (i.e. `type = "l"`) of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). The plot should look something like the following, which was created using **simulated data**:
+2. Make a panel plot containing a time series plot (i.e. `type = "l"`) of the 5-minute interval (x-axis) and the average number of steps taken, averaged across all weekday days or weekend days (y-axis). The plot should look something like the following, which was created using **simulated data**:
 
-![Panel plot](figure/panelplot.png) 
+```{r assigment5-2d }
+as52d <- as51d %>%
+    group_by(daytype,interval) %>%
+    summarise(steps.total.interval=sum(steps,na.rm = TRUE))
+```
+
+```{r assigment5-2g }
+as52g <- 
+    ggplot(as52d,aes(x=interval,y=steps.total.interval)) +
+    geom_line() +
+    facet_wrap(~ daytype,scales = "fixed",nrow = 2 )
+
+as52g
+```
+
 ## Submitting the Assignment
 
 
